@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""test console"""
+"""Test for console"""
 import unittest
 
 from console import HBNBCommand
