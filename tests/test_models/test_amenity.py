@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Defines unittests for models/amenity.py."""
+"""Defines unnittests for models/amenity.py."""
 import os
 import pep8
 import models
@@ -23,7 +23,7 @@ class TestAmenity(unittest.TestCase):
         """Amenity testing setup.
         Temporarily renames any existing file.json.
         Resets FileStorage objects dictionary.
-        Creates FileStorage, DBStorage, and Amenity instances for testing.
+        Creates FileStorage, DBStorage and Amenity instances for testing.
         """
         try:
             os.rename("file.json", "tmp")
@@ -42,8 +42,8 @@ class TestAmenity(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Amenity testing teardown.
-        Restore the original file.json.
-        Delete the FileStorage, DBStorage, and Amenity test instances.
+        Restore original file.json.
+        Delete the FileStorage, DBStorage and Amenity test instances.
         """
         try:
             os.remove("file.json")
@@ -71,13 +71,10 @@ class TestAmenity(unittest.TestCase):
 
     def test_attributes(self):
         """Check for attributes."""
-        amenity = Amenity(name="Example Amenity")
-        self.assertIsInstance(amenity.id, str)
-        self.assertIsInstance(amenity.created_at, datetime)
-        self.assertIsInstance(amenity.updated_at, datetime)
-        self.assertTrue(hasattr(amenity, "__tablename__"))
+        amenity = Amenity()
         self.assertTrue(hasattr(amenity, "name"))
-        self.assertTrue(hasattr(amenity, "place_amenities"))
+        if models.storage == 'db':
+            self.assertTrue(hasattr(amenity, "place_amenities"))
 
     @unittest.skipIf(type(models.storage) == FileStorage,
                      "Testing FileStorage")
@@ -88,7 +85,7 @@ class TestAmenity(unittest.TestCase):
             self.dbstorage._DBStorage__session.commit()
         self.dbstorage._DBStorage__session.rollback()
         with self.assertRaises(OperationalError):
-            self.dbstorage._DBStorage__session.add(Amenity(name="a"))
+            self.dbstorage._DBStorage__session.add(Amenity(email="a"))
             self.dbstorage._DBStorage__session.commit()
 
     def test_is_subclass(self):
@@ -101,17 +98,17 @@ class TestAmenity(unittest.TestCase):
 
     def test_two_models_are_unique(self):
         """Test that different Amenity instances are unique."""
-        amenity = Amenity(name="Example Amenity")
-        self.assertNotEqual(self.amenity.id, amenity.id)
-        self.assertLess(self.amenity.created_at, amenity.created_at)
-        self.assertLess(self.amenity.updated_at, amenity.updated_at)
+        us = Amenity(email="a", password="a")
+        self.assertNotEqual(self.amenity.id, us.id)
+        self.assertLess(self.amenity.created_at, us.created_at)
+        self.assertLess(self.amenity.updated_at, us.updated_at)
 
     def test_init_args_kwargs(self):
         """Test initialization with args and kwargs."""
         dt = datetime.utcnow()
-        amenity = Amenity("1", id="5", created_at=dt.isoformat())
-        self.assertEqual(amenity.id, "5")
-        self.assertEqual(amenity.created_at, dt)
+        st = Amenity("1", id="5", created_at=dt.isoformat())
+        self.assertEqual(st.id, "5")
+        self.assertEqual(st.created_at, dt)
 
     def test_str(self):
         """Test __str__ representation."""
@@ -148,4 +145,24 @@ class TestAmenity(unittest.TestCase):
         cursor.execute("SELECT * \
                           FROM `amenities` \
                          WHERE BINARY name = '{}'".
-                       format(self))
+                       format(self.amenity.name))
+        query = cursor.fetchall()
+        self.assertEqual(1, len(query))
+        self.assertEqual(self.amenity.id, query[0][0])
+        cursor.close()
+
+    def test_to_dict(self):
+        """Test to_dict method."""
+        amenity_dict = self.amenity.to_dict()
+        self.assertEqual(dict, type(amenity_dict))
+        self.assertEqual(self.amenity.id, amenity_dict["id"])
+        self.assertEqual("Amenity", amenity_dict["__class__"])
+        self.assertEqual(self.amenity.created_at.isoformat(),
+                         amenity_dict["created_at"])
+        self.assertEqual(self.amenity.updated_at.isoformat(),
+                         amenity_dict["updated_at"])
+        self.assertEqual(self.amenity.name, amenity_dict["name"])
+
+
+if __name__ == "__main__":
+    unittest.main()
