@@ -1,8 +1,7 @@
 #!/usr/bin/python3
+
 """Unittests for database storage"""
 import pep8
-import models
-import MySQLdb
 import unittest
 from os import getenv
 from models.base_model import Base
@@ -14,13 +13,14 @@ from models.place import Place
 from models.review import Review
 from models.engine.db_storage import DBStorage
 from models.engine.file_storage import FileStorage
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.engine.base import Engine
-
 
 class TestDBStorage(unittest.TestCase):
     """Unittests for testing the DBStorage class."""
+    STATE_NAME = "California"
+    CITY_NAME = "San_Jose"
+    USER_EMAIL = "poppy@holberton.com"
 
     @classmethod
     def setUpClass(cls):
@@ -28,26 +28,20 @@ class TestDBStorage(unittest.TestCase):
         Instantiate new DBStorage.
         Fill DBStorage test session with instances of all classes.
         """
-        if type(models.storage) == DBStorage:
-            cls.storage = DBStorage()
-            Base.metadata.create_all(cls.storage._DBStorage__engine)
-            Session = sessionmaker(bind=cls.storage._DBStorage__engine)
-            cls.storage._DBStorage__session = Session()
-            cls.state = State(name="California")
-            cls.storage._DBStorage__session.add(cls.state)
-            cls.city = City(name="San_Jose", state_id=cls.state.id)
-            cls.storage._DBStorage__session.add(cls.city)
-            cls.user = User(email="poppy@holberton.com", password="betty")
-            cls.storage._DBStorage__session.add(cls.user)
-            cls.place = Place(city_id=cls.city.id, user_id=cls.user.id,
-                              name="School")
-            cls.storage._DBStorage__session.add(cls.place)
-            cls.amenity = Amenity(name="Wifi")
-            cls.storage._DBStorage__session.add(cls.amenity)
-            cls.review = Review(place_id=cls.place.id, user_id=cls.user.id,
-                                text="stellar")
-            cls.storage._DBStorage__session.add(cls.review)
-            cls.storage._DBStorage__session.commit()
+        cls.storage = DBStorage()
+        cls.storage.reload()
+        cls.session = cls.storage._DBStorage__session
+
+        cls.state = State(name=cls.STATE_NAME)
+        cls.session.add(cls.state)
+
+        cls.city = City(name=cls.CITY_NAME, state_id=cls.state.id)
+        cls.session.add(cls.city)
+
+        cls.user = User(email=cls.USER_EMAIL, password="betty")
+        cls.session.add(cls.user)
+
+        cls.session.commit()
 
     @classmethod
     def tearDownClass(cls):
@@ -55,26 +49,29 @@ class TestDBStorage(unittest.TestCase):
         Delete all instantiated test classes.
         Clear DBStorage session.
         """
-        if type(models.storage) == DBStorage:
-            cls.storage._DBStorage__session.delete(cls.state)
-            cls.storage._DBStorage__session.delete(cls.city)
-            cls.storage._DBStorage__session.delete(cls.user)
-            cls.storage._DBStorage__session.delete(cls.amenity)
-            cls.storage._DBStorage__session.commit()
-            del cls.state
-            del cls.city
-            del cls.user
-            del cls.place
-            del cls.amenity
-            del cls.review
-            cls.storage._DBStorage__session.close()
-            del cls.storage
+        cls.session.delete(cls.user)
+        cls.session.delete(cls.city)
+        cls.session.delete(cls.state)
+        cls.session.commit()
 
-    def test_pep8(self):
-        """Test pep8 styling."""
+        cls.session.close()
+        del cls.state
+        del cls.city
+        del cls.user
+        del cls.storage
+
+    def test_pep8_style(self):
+        """Test code style with PEP 8."""
         style = pep8.StyleGuide(quiet=True)
-        p = style.check_files(['models/engine/db_storage.py'])
-        self.assertEqual(p.total_errors, 0, "fix pep8")
+        result = style.check_files(['models/engine/db_storage.py'])
+        self.assertEqual(
+            result.total_errors, 0,
+            "PEP 8 style issues found in db_storage.py")
+
+    # ... (other test methods)
+
+if __name__ == "__main__":
+    unittest.main()
 
     def test_docstrings(self):
         """Check for docstrings."""
